@@ -1,0 +1,50 @@
+services:
+  nginx:
+    image: nginx:latest
+    volumes:
+      - ./:/var/www
+      - ./_docker/nginx/conf.d:/etc/nginx/conf.d
+    ports:
+      - "1234:80"
+    depends_on:
+      - app
+    container_name: project_nginx
+  app:
+    build:
+        context: ./
+        dockerfile: ./_docker/app/Dockerfile
+    volumes:
+        - ./:/var/www
+    depends_on:
+        - db
+    command:
+        - "sh"
+        - "-c"
+        - "chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache && php artisan migrate --force && php-fpm"
+    container_name: project_app
+  db:
+    image: mysql:8.0
+    restart: always
+    volumes:
+      - ./tmp/db:/var/lib/mysql
+    environment:
+      MYSQL_DATABASE: laraDocker
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_ALLOW_EMPTY_PASSWORD: "no"
+    ports:
+      - "1403:3306"
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    container_name: project_db
+  phpmyadmin:
+    image: phpmyadmin:latest
+    restart: always
+    ports:
+      - "8080:80"
+    environment:
+      PMA_HOST: db
+      PMA_POST: 3306
+      PMA_USER: root
+      PMA_PASSWORD: root
+    depends_on:
+      - db
+    container_name: project_phpmyadmin
